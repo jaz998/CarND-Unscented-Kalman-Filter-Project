@@ -93,8 +93,36 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   measurements.
   */
 
+	// Only perform this process is there is a known sensor type
+	if ((meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_) ||
+		(meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_)) {
 
+		if (!is_initialized_) {
+			if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+				// Assigning values to the state vector
+				double px = meas_package.raw_measurements_(0);
+				double py = meas_package.raw_measurements_(1);
+				x_ << px, py, 0.0, 0.0, 0.0;
+			}
+			else { // Radar measurements
+				double rho = meas_package.raw_measurements_(0);
+				double phi = meas_package.raw_measurements_(1);
+				double rho_dot = meas_package.raw_measurements_(2);
 
+				double px = rho * cos(phi);
+				double py = rho * sin(phi);
+				double vx = rho_dot * cos(phi);
+				double vy = rho_dot * sin(phi);
+				double v = sqrt(vx*vx + vy * vy);
+				x_ << px, py, v, 0.0, 0.0;
+			}
+			// Saving firsr time stamp in seconds
+			time_us_ = meas_package.timestamp_;
+			// done initializing, no need to predict or update
+			is_initialized_ = true;
+			return;
+		}
+	}
 }
 
 /**
