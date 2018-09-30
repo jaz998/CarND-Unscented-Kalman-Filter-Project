@@ -20,15 +20,17 @@ UKF::UKF() {
 
   // initial state vector
   x_ = VectorXd(5);
+  x_ << 0.0, 0.0, 0.0, 0.0, 0.0;
 
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
+  P_ = MatrixXd::Identity(5,5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 15;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 15;
   
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -54,6 +56,23 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  //Initializing state dimension
+  n_x_ = 5;
+
+  //Initializing augmented state dimension
+  n_aug_ = 2 * n_x_ + 1;
+
+  // Initializing sigma point spreading parameters
+  lambda_ = 3 - n_x_;
+
+  // Initializing weights of sigma points 
+
+
+
+
+
+
 }
 
 UKF::~UKF() {}
