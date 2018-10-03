@@ -102,6 +102,18 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
+
+private:
+	/**
+	 * Generate sigma points:
+	 * @param x : State vector
+	 * @param P : Covariance matrix
+	 * @param lambda: Sigma points spreading parameter.
+	 * @param n_sig: Sigma points dimension.
+	*/
+	MatrixXd GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig);
+
+
 };
 
 #endif /* UKF_H */

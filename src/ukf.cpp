@@ -97,6 +97,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 	if ((meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_) ||
 		(meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_)) {
 
+		// Initializing
 		if (!is_initialized_) {
 			if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
 				// Assigning values to the state vector
@@ -122,13 +123,19 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 			is_initialized_ = true;
 			return;
 		}
+
+		// Calculate delta t
+		double dt = (meas_package.timestamp_ = time_us_) / 1000000.0;
+		time_us_ = meas_package.timestamp_;
+		// Prediction step
+		Prediction(dt);
 	}
 }
 
 /**
  * Predicts sigma points, the state, and the state covariance matrix.
  * @param {double} delta_t the change in time (in seconds) between the last
- * measurement and this one.
+ * measurement and this one.f
  */
 void UKF::Prediction(double delta_t) {
   /**
@@ -137,6 +144,28 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+	// Step 1. Generate sigma points
+	// Create sigma point matrix
+	VectorXd x_aug = VectorXd(n_aug_);
+	x_aug.head(5) = x_;
+	x_aug(5) = 0;
+	x_aug(6) = 0;
+
+	//create augmented state variance
+	MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
+	P_aug.fill(0.0);
+	P_aug.topLeftCorner(n_x_, n_x_) = P_;
+	P_aug(5, 5) = std_a_ * std_a_;
+	P_aug(6, 6) = std_yawdd_ * std_yawdd_;
+	
+	// Creating sigma points
+
+	
+
+
+
+
+
 }
 
 /**
@@ -167,4 +196,21 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+}
+
+MatrixXd UKF::GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig) {
+	int n = x.size();
+	//Create sigma point matrix
+	MatrixXd Xsig = MatrixXd(n, n_sig);
+
+	// calculate square root of matrix P
+	MatrixXd A = P.llt().matrixL();
+
+	Xsig.col(0) = x;
+
+	for (int i = 0; i < n; i++) {
+		Xsig.col(i + 1) = x + sqrt(lambda + n)*A.col(i);
+		Xsig.col(i + 1 + n) = x - sqrt(lambda + n)*A.col(i);
+	}
+	return Xsig;
 }
