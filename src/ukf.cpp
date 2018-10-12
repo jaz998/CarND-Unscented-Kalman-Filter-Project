@@ -85,22 +85,7 @@ UKF::UKF() {
 
 UKF::~UKF() {}
 
-MatrixXd UKF::GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig) {
-	int n = x.size();
-	//Create sigma point matrix
-	MatrixXd Xsig = MatrixXd(n, n_sig);
 
-	// calculate square root of matrix P
-	MatrixXd A = P.llt().matrixL();
-
-	Xsig.col(0) = x;
-
-	for (int i = 0; i < n; i++) {
-		Xsig.col(i + 1) = x + sqrt(lambda + n)*A.col(i);
-		Xsig.col(i + 1 + n) = x - sqrt(lambda + n)*A.col(i);
-	}
-	return Xsig;
-}
 
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
@@ -150,6 +135,13 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 		time_us_ = meas_package.timestamp_;
 		// Prediction step
 		Prediction(dt);
+
+		if (meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
+			UpdateRadar(meas_package);
+		}
+		if (meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_) {
+			UpdateLidar(meas_package);
+		}
 	}
 }
 
@@ -249,10 +241,24 @@ MatrixXd UKF::PredictSignmaPoints(MatrixXd Xsig, double delta_t, int n_x, int n_
 		px_pred = px_pred + 0.5*nu_a*delta_t*delta_t* cos(yaw);
 		py_pred = py_pred + 0.5*nu_a*delta_t*delta_t* sin(yaw);
 
-
-
-
 	}
 
+}
+
+MatrixXd UKF::GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig) {
+	int n = x.size();
+	//Create sigma point matrix
+	MatrixXd Xsig = MatrixXd(n, n_sig);
+
+	// calculate square root of matrix P
+	MatrixXd A = P.llt().matrixL();
+
+	Xsig.col(0) = x;
+
+	for (int i = 0; i < n; i++) {
+		Xsig.col(i + 1) = x + sqrt(lambda + n)*A.col(i);
+		Xsig.col(i + 1 + n) = x - sqrt(lambda + n)*A.col(i);
+	}
+	return Xsig;
 }
 
