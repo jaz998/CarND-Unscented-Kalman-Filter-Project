@@ -67,6 +67,9 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  ///* Sigma point dimension
+  int n_sig_;
+
 
   /**
    * Constructor
@@ -112,7 +115,17 @@ private:
 	 * @param n_sig: Sigma points dimension.
 	*/
 	MatrixXd GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig);
-
+	
+	/**
+	 * Predict sigma points
+	 * @param Xsig : sigma points to predict
+	 * @param delta_t : Time between k and k+1 in s
+	 * @param n_x: size of the state dimension
+	 * @param n_sig: size of sigma point dimension
+	 * @param nu_am: Process noise - standard deviation of longitudinal accelation (m/S^2)
+	 * @param nu_yawdd: Process noise - standard deviation yaw 
+	 **/
+	MatrixXd PredictSignmaPoints(MatrixXd Xsig, double delta_t, int n_x, int n_sig, double nu_am, double nu_yawdd);
 
 };
 

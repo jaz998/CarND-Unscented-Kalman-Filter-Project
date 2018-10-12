@@ -2,6 +2,8 @@
 #include "Eigen/Dense"
 #include <iostream>
 
+#define EPS 0.001
+
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -63,14 +65,16 @@ UKF::UKF() {
   //Initializing augmented state dimension
   n_aug_ = 2 * n_x_ + 1;
 
+  ///* Sigma points dimension
+  n_sig_ = 2 * n_aug_ + 1;
+
   // Initializing sigma point spreading parameters
   lambda_ = 3 - n_x_;
 
   ///* initially set to false, set to true in first call of ProcessMeasurement
   is_initialized_ = false;
 
-  ///* predicted sigma points matrix
-  Xsig_pred_ = MatrixXd(n_x_, 2*n_aug_+1);
+	
 
   ///* time when the state is true, in us
   time_us_ = 0.0;
@@ -80,6 +84,23 @@ UKF::UKF() {
 }
 
 UKF::~UKF() {}
+
+MatrixXd UKF::GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig) {
+	int n = x.size();
+	//Create sigma point matrix
+	MatrixXd Xsig = MatrixXd(n, n_sig);
+
+	// calculate square root of matrix P
+	MatrixXd A = P.llt().matrixL();
+
+	Xsig.col(0) = x;
+
+	for (int i = 0; i < n; i++) {
+		Xsig.col(i + 1) = x + sqrt(lambda + n)*A.col(i);
+		Xsig.col(i + 1 + n) = x - sqrt(lambda + n)*A.col(i);
+	}
+	return Xsig;
+}
 
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
@@ -159,13 +180,7 @@ void UKF::Prediction(double delta_t) {
 	P_aug(6, 6) = std_yawdd_ * std_yawdd_;
 	
 	// Creating sigma points
-
-	
-
-
-
-
-
+	MatrixXd Xsig_aug = GenerateSigmaPoints(x_aug, P_aug, lambda_, n_sig_);
 }
 
 /**
@@ -198,19 +213,46 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   */
 }
 
-MatrixXd UKF::GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig) {
-	int n = x.size();
-	//Create sigma point matrix
-	MatrixXd Xsig = MatrixXd(n, n_sig);
 
-	// calculate square root of matrix P
-	MatrixXd A = P.llt().matrixL();
 
-	Xsig.col(0) = x;
+MatrixXd UKF::PredictSignmaPoints(MatrixXd Xsig, double delta_t, int n_x, int n_sig, double nu_am, double nu_yawdd) {
+	MatrixXd Xsig_pred = MatrixXd(n_x, n_sig);
+	// Predict sigma points
+	for (int i = 0; i < n_sig; i++) {
+		// Extracting values for better readability
+		double px = Xsig(0, i);
+		double py = Xsig(1, i);
+		double v = Xsig(2, i);
+		double yaw = Xsig(3, i);
+		double yawd = Xsig(4, i);
+		double nu_a = Xsig(5, i);
+		double nu_yawdd = Xsig(6, i);
 
-	for (int i = 0; i < n; i++) {
-		Xsig.col(i + 1) = x + sqrt(lambda + n)*A.col(i);
-		Xsig.col(i + 1 + n) = x - sqrt(lambda + n)*A.col(i);
+		//Predicted state values
+		double px_pred, py_pred;
+
+		// Avoid division by zero
+		if (fabs(yawd) > EPS) {
+			px_pred = px + v / yawd * (sin(yaw + yaw * delta_t) - sin(yaw));
+			py_pred = py + v / yawd * (cos(yaw) - cos(yaw + yawd * delta_t));
+		}
+		else {
+			px_pred = px + v * delta_t*cos(yaw);
+			py_pred = py + v * delta_t*sin(yaw);
+		}
+		
+		double v_pred = v;
+		double yaw_pred = yaw + yawd * delta_t;
+		double yawd_pred = yawd;
+
+		// including noise
+		px_pred = px_pred + 0.5*nu_a*delta_t*delta_t* cos(yaw);
+		py_pred = py_pred + 0.5*nu_a*delta_t*delta_t* sin(yaw);
+
+
+
+
 	}
-	return Xsig;
+
 }
+
