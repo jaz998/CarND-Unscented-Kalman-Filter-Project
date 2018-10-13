@@ -171,8 +171,25 @@ void UKF::Prediction(double delta_t) {
 	P_aug(5, 5) = std_a_ * std_a_;
 	P_aug(6, 6) = std_yawdd_ * std_yawdd_;
 	
-	// Creating sigma points
+	// 1. Creating sigma points
 	MatrixXd Xsig_aug = GenerateSigmaPoints(x_aug, P_aug, lambda_, n_sig_);
+	// 2. Predict sigma points
+	Xsig_pred_ = PredictSignmaPoints(Xsig_aug, delta_t, n_x_, n_sig_, std_a_, std_yawdd_);
+	// 3. Predict Mean and Covariance
+	//predict state mean
+	x_ = Xsig_pred_ * weights_;
+
+	//predicted state covariance matrix
+	P_.fill(0.0);
+	for (int i = 0; i < n_sig_; i++) {  //iterate over sigma points
+
+		// state difference
+		VectorXd x_diff = Xsig_pred_.col(i) - x_;
+		// Normalizing angle
+		NormalizeAngle(x_diff, 3);
+
+		P_ = P_ + weights_(i)*x_diff*x_diff.transpose();
+	}
 }
 
 /**
@@ -260,5 +277,13 @@ MatrixXd UKF::GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_s
 		Xsig.col(i + 1 + n) = x - sqrt(lambda + n)*A.col(i);
 	}
 	return Xsig;
+}
+
+/**
+* Normalized the component 'index' of the vector 'vector' to be inside
+*/
+void UKF::NormalizeAngle(VectorXd vector, int index) {
+	while (vector(index) > M_PI) vector(index) -= 2.*M_PI;
+	while (vector(index) < -M_PI) vector(index) += 2.*M_PI;
 }
 

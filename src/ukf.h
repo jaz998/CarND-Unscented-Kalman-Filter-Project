@@ -106,6 +106,12 @@ public:
    */
   void UpdateRadar(MeasurementPackage meas_package);
 
+  /**
+  * Normalized the component 'index' of the vector 'vector' to be inside
+  */
+  void NormalizeAngle(VectorXd vector, int index);
+
+
 private:
 	/**
 	 * Generate sigma points:
