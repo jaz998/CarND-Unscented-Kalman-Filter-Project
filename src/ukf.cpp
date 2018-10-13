@@ -63,7 +63,7 @@ UKF::UKF() {
   n_x_ = 5;
 
   //Initializing augmented state dimension
-  n_aug_ = 2 * n_x_ + 1;
+  n_aug_ = n_x_ + 1;
 
   ///* Sigma points dimension
   n_sig_ = 2 * n_aug_ + 1;
@@ -80,7 +80,22 @@ UKF::UKF() {
   time_us_ = 0.0;
 
   ///* Weights of sigma points
-  weights_ = VectorXd(2*n_aug_+1);
+  weights_ = VectorXd(n_sig_);
+
+  // Initialize weights 
+  weights_.fill(0.5 / (n_aug_ + lambda_));
+  weights_(0) = lambda_ / (lambda_ + n_aug_);
+
+  // Initialize measurement noise covariance matrix
+  R_radar_ = MatrixXd(3, 3);
+  R_radar_ << std_radr_ * std_radr_, 0, 0,
+	  0, std_radphi_*std_radphi_, 0,
+	  0, 0, std_radrd_*std_radrd_;
+
+  R_lidar_ = MatrixXd(2, 2);
+  R_lidar_ << std_laspx_ * std_laspx_, 0,
+	  0, std_laspy_*std_laspy_;
+ 
 }
 
 UKF::~UKF() {}
@@ -205,6 +220,31 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
+
+	//1. Predict measurement
+	int n_z = 2;
+	MatrixXd Zsig = Xsig_pred_.block(0, 0, n_z, n_sig_);
+
+	// mean predicted measurement
+	VectorXd z_pred = VectorXd(n_z);
+	z_pred.fill(0.0);
+	for (int i = 0; i < n_sig_; i++) {
+		z_pred = z_pred + weights_(i)*Zsig.col(i);
+	}
+
+	// Measurement covariance matrix S
+	MatrixXd S = MatrixXd(n_z, n_z);
+	S.fill(0.0);
+	for (int i = 0; i < n_sig_; i++) { //2n+1 sigma points
+		//residual
+		VectorXd z_diff = Zsig.col(i) - z_pred;
+
+		S = S + weights_(i)*z_diff*z_diff.transpose();
+	}
+
+	//add measurement noise covariance matrix
+
+
 }
 
 /**
