@@ -36,7 +36,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 		return rmse;
 	}
 
-	for (unsigned int i = 0; i++; i < n) {
+	for (unsigned int i = 0; i<n; i++) {
 		VectorXd difference = estimations[i] - ground_truth[i];
 		difference = difference.array()*difference.array();
 		rmse = rmse + difference;

@@ -243,8 +243,37 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 	}
 
 	//add measurement noise covariance matrix
+	S = S + R_lidar_;
 
+	// 2. Update state
+	// Incoming radar measurement
+	VectorXd z = meas_package.raw_measurements_;
 
+	// create matrix for cross correlation Tc
+	MatrixXd Tc = MatrixXd(n_x_, n_z);
+	Tc.fill(0.0);
+	for (int i = 0; i < n_sig_; i++) {  //2n + 1 sigma points
+		//residual 
+		VectorXd z_diff = Zsig.col(i) - z_pred;
+
+		// state difference
+		VectorXd x_diff = Xsig_pred_.col(i) - x_;
+
+		Tc = Tc + weights_(i)*x_diff*z_diff.transpose();
+	}
+
+	//Kalman gain K
+	MatrixXd K = Tc * S.inverse();
+
+	//residual
+	VectorXd z_diff = z - z_diff;
+
+	// Update state mean and covariance matrix
+	x_ = x_ + K * z_diff;
+	P_ = P_ - K * S*K.transpose();
+
+	// NIS lidar update
+	NIS_lidar_ = z_diff.transpose()*S.inverse()*z_diff;	
 }
 
 /**
@@ -260,6 +289,89 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+	// Radar measurement dimension
+	int n_z = 3;
+	// 1. Predict measurement
+	MatrixXd Zsig = MatrixXd(n_z, n_sig_);
+	// transform sigma points into measurement space
+	for (int i = 0; i < n_sig_; i++) {	//2n+1 sigma points
+
+		// extract values for better readibility
+		double px = Xsig_pred_(0, i);
+		double py = Xsig_pred_(1, i);
+		double v = Xsig_pred_(2, i);
+		double yaw = Xsig_pred_(3, i);
+
+		double v1 = cos(yaw)*v;
+		double v2 = sin(yaw)*v;
+
+		// measurement model
+		Zsig(0, i) = sqrt(px*px + py * py);			//rho
+		Zsig(1, i) = atan2(py, px);					//phi
+		Zsig(2, i) = (px*v1 + py * v2) / sqrt(px*px + py * py);		//rho_dot
+	}
+
+	//mean predicted measurement
+	VectorXd z_pred = VectorXd(n_z);
+	z_pred.fill(0.0);
+	for (int i = 0; i < n_sig_; i++) {
+		z_pred = z_pred + weights_(i)*Zsig.col(i);
+	}
+
+	//measurement covariance matrix S
+	MatrixXd S = MatrixXd(n_z, n_z);
+	S.fill(0.0);
+	for (int i = 0; i < n_sig_; i++) {	//2n+1 sigma points
+		//residual 
+		VectorXd z_diff = Zsig.col(i) - z_pred;
+
+		//angle nomalization
+		NormalizeAngle(z_diff, 1);
+
+		S = S + weights_(i)*z_diff*z_diff.transpose();
+	}
+
+	//add measurement noise covariance matrix
+	S = S + R_radar_;
+
+	// 2. Update state
+	// Incoming radar measurement
+	VectorXd z = meas_package.raw_measurements_;
+
+	// create matrix for cross correlation Tc
+	MatrixXd Tc = MatrixXd(n_x_, n_z);
+
+	Tc.fill(0.0);
+	for (int i = 0; i < n_sig_; i++) {
+		//residual
+		VectorXd z_diff = Zsig.col(i) - z_pred;
+		// normalizing angle
+		NormalizeAngle(z_diff, 1);
+
+		// state difference
+		VectorXd x_diff = Xsig_pred_.col(i) - x_;
+		// Normalizing angle
+		NormalizeAngle(x_diff, 3);
+
+		Tc = Tc + weights_(i)*x_diff*z_diff.transpose();
+	}
+
+	//Kalman gain K
+	MatrixXd K = Tc * S.inverse();
+
+	//residual
+	VectorXd z_diff = z - z_pred;
+
+	//normalizing angle
+	NormalizeAngle(z_diff, 1);
+
+	// update state mean and covariance matrix
+	x_ = x_ + K * z_diff;
+	P_ = P_ - K * S*K.transpose();
+
+	// NIS update
+	NIS_radar_ = z_diff.transpose()*S.inverse()*z_diff;
+
 }
 
 
