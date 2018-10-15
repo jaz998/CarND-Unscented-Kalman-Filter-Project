@@ -121,7 +121,7 @@ public:
   /**
   * Normalized the component 'index' of the vector 'vector' to be inside
   */
-  void NormalizeAngle(VectorXd vector, int index);
+  void NormalizeAngle(VectorXd &vector, int index);
 
 
 private:
