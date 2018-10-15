@@ -11,6 +11,31 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 class UKF {
+private:
+  /**
+   *   Generate sigma points:
+   *  @param x : State vector.
+   *  @param P : Covariance matrix.
+   *  @param lambda: Sigma points spreading parameter.
+   *  @param n_sig: Sigma points dimension.
+   */
+  MatrixXd CreateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig);
+
+  /**
+   * Predits sigma points.
+   * @param Xsig : Sigma points to predict.
+   * @param delta_t : Time difference between k and k+1 in s
+   * @param n_x : State dimension.
+   * @param n_sig : Sigma points dimension.
+   * @param nu_am : Process noise standard deviation longitudinal acceleration in m/s^2
+   * @param nu_yawdd : Process noise standard deviation yaw acceleration in rad/s^2
+   */
+  MatrixXd PredictSigmaPoints(MatrixXd Xsig, double delta_t, int n_x, int n_sig, double nu_am, double nu_yawdd);
+
+  /**
+   *  Normalized the component `index` of the vector `vector` to be inside [-M_PI, M_PI] interval.
+   */
+  void NormalizeAngle(VectorXd vector, int index);
 public:
 
   ///* initially set to false, set to true in first call of ProcessMeasurement
@@ -67,7 +92,7 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
-  ///* Sigma point dimension
+  ///* Sigma points dimension
   int n_sig_;
 
   ///* Radar measurement noise covariance matrix
@@ -76,11 +101,11 @@ public:
   ///* Lidar measurement noise covariance matrix
   MatrixXd R_lidar_;
 
-  ///* The current NIS for radar
+  ///* the current NIS for radar
   double NIS_radar_;
 
-  ///* The current NIS for lidar
-  double NIS_lidar_;
+  ///* the current NIS for laser
+  double NIS_laser_;
 
 
   /**
@@ -94,17 +119,27 @@ public:
   virtual ~UKF();
 
   /**
+ * Updates the state and the state covariance matrix using a radar measurement
+ * @param meas_package The measurement at k+1
+ */
+  void UpdateRadar(MeasurementPackage meas_package);
+
+
+  /**
+ * Prediction predicts sigma points, the state, and the state covariance
+ * matrix
+ * @param delta_t Time between k and k+1 in s
+ */
+  void Prediction(double delta_t);
+
+
+  /**
    * ProcessMeasurement
    * @param meas_package The latest measurement data of either radar or laser
    */
   void ProcessMeasurement(MeasurementPackage meas_package);
 
-  /**
-   * Prediction Predicts sigma points, the state, and the state covariance
-   * matrix
-   * @param delta_t Time between k and k+1 in s
-   */
-  void Prediction(double delta_t);
+
 
   /**
    * Updates the state and the state covariance matrix using a laser measurement
@@ -112,38 +147,6 @@ public:
    */
   void UpdateLidar(MeasurementPackage meas_package);
 
-  /**
-   * Updates the state and the state covariance matrix using a radar measurement
-   * @param meas_package The measurement at k+1
-   */
-  void UpdateRadar(MeasurementPackage meas_package);
-
-  /**
-  * Normalized the component 'index' of the vector 'vector' to be inside
-  */
-  void NormalizeAngle(VectorXd &vector, int index);
-
-
-private:
-	/**
-	 * Generate sigma points:
-	 * @param x : State vector
-	 * @param P : Covariance matrix
-	 * @param lambda: Sigma points spreading parameter.
-	 * @param n_sig: Sigma points dimension.
-	*/
-	MatrixXd GenerateSigmaPoints(VectorXd x, MatrixXd P, double lambda, int n_sig);
-	
-	/**
-	 * Predict sigma points
-	 * @param Xsig : sigma points to predict
-	 * @param delta_t : Time between k and k+1 in s
-	 * @param n_x: size of the state dimension
-	 * @param n_sig: size of sigma point dimension
-	 * @param nu_am: Process noise - standard deviation of longitudinal accelation (m/S^2)
-	 * @param nu_yawdd: Process noise - standard deviation yaw 
-	 **/
-	MatrixXd PredictSignmaPoints(MatrixXd Xsig, double delta_t, int n_x, int n_sig, double nu_am, double nu_yawdd);
 
 };
 
